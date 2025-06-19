@@ -1,45 +1,57 @@
 <?php
-include 'db.php';
 session_start();
 
-$phone = $_POST['phone'];
-$otp = rand(100000, 999999);
-$created_at = date("Y-m-d H:i:s");
-$_SESSION['phone'] = $phone;
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $phone = $_POST['phone'];
+    $_SESSION['phone'] = $phone;
 
-// Store in DB
-mysqli_query($conn, "INSERT INTO otp_verification (phone, otp, created_at) VALUES ('$phone', '$otp', '$created_at')");
+    $otp = rand(100000, 999999);
+    $_SESSION['otp'] = $otp;
 
-// Fast2SMS API setup
-$apiKey = "grKPoRqgmBU1HueBAgg5nvLT7xLVJk7MALUxpYgutH1Vi2sz1SUr762dQPVI";
-$message = "Your OTP for Turf Booking is $otp";
-$numbers = $phone;
+    // FAST2SMS API SETUP
+    $apiKey = "cggol7MJzXomiyGcASZGGacHlreABHRBIX3I5JPpRYaVG1Vow1SnJe4dlGUV"; // Replace this with your actual API key
 
-$data = array(
-    "sender_id" => "FSTSMS",
-    "message" => $message,
-    "language" => "english",
-    "route" => "p",
-    "numbers" => $numbers
-);
+    $fields = array(
+        "sender_id" => "FSTSMS",
+        "message" => "Your OTP for Turf Booking is $otp",
+        "language" => "english",
+        "route" => "q",
+        "numbers" => $phone,
+    );
 
-$curl = curl_init();
-curl_setopt_array($curl, array(
-    CURLOPT_URL => "https://www.fast2sms.com/dev/bulkV2",
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => json_encode($data),
-    CURLOPT_HTTPHEADER => array(
-        "authorization: $apiKey",
-        "accept: */*",
-        "cache-control: no-cache",
-        "content-type: application/json"
-    ),
-));
+    $curl = curl_init();
 
-$response = curl_exec($curl);
-curl_close($curl);
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => "https://www.fast2sms.com/dev/bulkV2",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_SSL_VERIFYPEER => 0,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS => json_encode($fields),
+        CURLOPT_HTTPHEADER => array(
+            "authorization: $apiKey",
+            "accept: */*",
+            "cache-control: no-cache",
+            "content-type: application/json"
+        ),
+    ));
 
-// Redirect to OTP input page
-header("Location: verify_otp.php");
+    $response = curl_exec($curl);
+    $err = curl_error($curl);
+
+    curl_close($curl);
+
+    if ($err) {
+        echo "<script>alert('OTP sending failed: $err'); window.location.href='login_otp.php';</script>";
+    } else {
+        echo "<script>alert('✅ OTP sent successfully!'); window.location.href='verify_otp.php';</script>";
+    }
+} else {
+    header("Location: login_otp.php");
+    exit();
+}
 ?>

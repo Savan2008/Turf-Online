@@ -99,34 +99,124 @@
       width: 80px;
     }
   </style>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+  <!-- ✅ Put in <script> -->
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCNqoBT4Sp7vdGhlmiaxOFJE_JfIJT0fJA",
+    authDomain: "turfotp.firebaseapp.com",
+    projectId: "turfotp",
+    storageBucket: "turfotp.appspot.com",
+    messagingSenderId: "363462494",
+    appId: "1:363462494:web:3455aa9e4864f7596f99cf"
+  };
+  firebase.initializeApp(firebaseConfig);
+
+  let confirmationResult;
+
+  window.onload = function () {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'normal',
+      callback: function (response) {
+        console.log("reCAPTCHA verified");
+      },
+      'expired-callback': function () {
+        alert("reCAPTCHA expired. Please refresh and try again.");
+      }
+    });
+    recaptchaVerifier.render().then(function (widgetId) {
+      window.recaptchaWidgetId = widgetId;
+    });
+  };
+
+  function sendOTP() {
+    const phone = document.getElementById("phone").value;
+    const terms = document.getElementById("terms").checked;
+
+    if (!terms) {
+      alert("Please accept the Terms and Conditions.");
+      return;
+    }
+
+    if (!/^\+[0-9]{10,15}$/.test(phone)) {
+      alert("Enter a valid phone number with country code (e.g. +91...)");
+      return;
+    }
+
+    firebase.auth().signInWithPhoneNumber(phone, window.recaptchaVerifier)
+      .then(function (result) {
+        confirmationResult = result;
+        document.getElementById("login-status").innerHTML = "✅ OTP sent successfully.";
+      }).catch(function (error) {
+        console.error("Firebase error:", error);
+        alert("OTP send failed: " + error.message);
+      });
+  }
+
+  function verifyOTP() {
+    const otp = document.getElementById("otp").value;
+    confirmationResult.confirm(otp).then(function (result) {
+      const user = result.user;
+      document.getElementById("login-status").innerHTML = "✅ Logged in as " + user.phoneNumber;
+      window.location.href = "home.php";
+    }).catch(function (error) {
+      alert("❌ Invalid OTP");
+    });
+  }
+</script>
+
 </head>
 <body>
 
   <div class="container">
-    <img src="logo (2).png" alt="Turf Logo" class="logo" />
+    <img src="turflogo.png" alt="Turf Logo" class="logo" />
     <h2>Login via OTP</h2>
 
-    <form action="send_otp.php" method="POST" onsubmit="return validateForm()">
-      <input type="text" name="phone" id="phone" placeholder="Enter 10-digit Phone Number" required maxlength="10" pattern="\d{10}">
-    
+    <input type="text" name="phone" id="phone" placeholder="Enter phone with +91..." required />
 
-      <div class="checkbox-group">
-        <input type="checkbox" id="terms" required>
-        <label for="terms">
-          I agree to the
-          <a href="terms.php" target="_blank">Terms & Conditions</a> and
-          <a href="privacy.php" target="_blank">Privacy Policy</a>.
-        </label>
-      </div>
+    <div class="checkbox-group">
+      <input type="checkbox" id="terms" required>
+      <label for="terms">
+        I agree to the
+        <a href="terms.php" target="_blank">Terms & Conditions</a> and
+        <a href="privacy.php" target="_blank">Privacy Policy</a>.
+      </label>
+    </div>
 
-      <button type="submit">Send OTP</button>
-    </form>
+    <div id="recaptcha-container"></div>
+    <button onclick="sendOTP()">Send OTP</button>
+
+    <input type="text" id="otp" placeholder="Enter OTP" style="margin-top:15px;">
+    <button onclick="verifyOTP()">Verify OTP</button>
 
     <div class="footer">Powered by Turf Booking System</div>
+    <div id="login-status" style="text-align:center; margin-top:10px;"></div>
   </div>
 
   <script>
-    function validateForm() {
+    let confirmationResult;
+
+    window.onload = function () {
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    'size': 'normal',
+    'callback': function (response) {
+      // reCAPTCHA solved - allow sendOTP
+      console.log("Recaptcha verified");
+    },
+    'expired-callback': function () {
+      alert("reCAPTCHA expired. Please refresh and try again.");
+    }
+  });
+  recaptchaVerifier.render().then(function(widgetId) {
+    window.recaptchaWidgetId = widgetId;
+  });
+};
+
+    function sendOTP() {
       const phone = document.getElementById("phone").value;
       const terms = document.getElementById("terms").checked;
 
@@ -135,14 +225,31 @@
         return false;
       }
 
-      if (!/^\d{10}$/.test(phone)) {
-        alert("Please enter a valid 10-digit phone number.");
+      if (!/^\+[0-9]{10,15}$/.test(phone)) {
+        alert("Please enter a valid phone number with country code (e.g., +91...)");
         return false;
       }
 
-      return true;
+      firebase.auth().signInWithPhoneNumber(phone, window.recaptchaVerifier)
+        .then(function(result) {
+          confirmationResult = result;
+          document.getElementById("login-status").innerHTML = "✅ OTP sent successfully.";
+        }).catch(function(error) {
+          console.error(error);
+          alert("OTP send failed: " + error.message);
+        });
+    }
+
+    function verifyOTP() {
+      const otp = document.getElementById("otp").value;
+      confirmationResult.confirm(otp).then(function(result) {
+        const user = result.user;
+        document.getElementById("login-status").innerHTML = "✅ Logged in as " + user.phoneNumber;
+        window.location.href = "home.php";
+      }).catch(function(error) {
+        alert("❌ Invalid OTP");
+      });
     }
   </script>
-
 </body>
 </html>

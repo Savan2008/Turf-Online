@@ -73,7 +73,7 @@
 <body>
 
   <!-- Logo -->
-  <img src="turf_logo.png" alt="Turf Booking Logo" class="logo">
+  <img src="turflogo.png" alt="Turf Booking Logo" class="logo">
 
   <!-- Heading -->
   <h1>Welcome to Turf Booking</h1>
